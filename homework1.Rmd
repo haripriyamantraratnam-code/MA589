@@ -1,0 +1,155 @@
+---
+title: "Homework 1"
+output:
+  pdf_document: default
+  word_document: default
+date: "2025-09-01"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) # Shows all inputs and all outputs 
+```
+
+Priya Mantraratnam 
+
+
+practice of basic R commands: 
+
+```{r practice1}
+3 + 2 #5
+6 - 6 #0
+5 * 2 #10
+4 / 2 #2
+4^2 #16
+4 %% 3 #1
+13 %/% 4 #3
+
+3 == 3 # True
+4 != 1 # True
+8 > 9 #False
+4 < 6 #True 
+
+(3 == 3) & (4 == 4) #True 
+(4 != 3) | (5 < 2) #True 
+!(3 > 2) #False 
+
+set1 <- c(1, 2, 3, 4, 5, 6)
+sum(set1)      # Sum: 21
+mean(set1)     # Mean: 3.5
+median(set1)   # Median: 3.5
+sd(set1)       # Standard Deviation: 1.871
+min(set1)      # Minimum: 1
+max(set1)      # Maximum: 6
+range(set1)    # Range: 1 6
+length(set1)   # Length: 6
+
+vec <- c(1, 2, 3, 4, 5, 6) # Vector 
+vec[2]    # Second element
+vec[1:4]  # First four elements
+vec + 3       # Adds 3 to each element
+vec * 3       # Multiplies each element by 3
+sum(vec)      # Sum of elements
+mean(vec)     # Mean of elements
+
+mat <- matrix(1:9, nrow=3, ncol=3) # Matrix 
+mat[3, 1]     # Element in third row, first column
+mat[, 2]      # Second column
+mat[3, ]      # Third row
+mat + 3       # Add 3 to each element
+mat * 3       # Multiply each element by 3
+mat %*% mat   # Matrix multiplication
+
+df <- data.frame(
+  Type = c("A", "B", "C"),
+  Length = c(25, 30, 35),
+  Width = c(5.5, 6.0, 5.8)
+) 
+df$Type     # Access by column name
+df[, 3]     # Access by column position (third column)
+df$Weight <- c(130, 150, 160) # Adding another column 
+df$Length <- NULL # Removing a column 
+
+my_list <- list(
+  Type = "A",
+  Length = 25,
+  Age = c(85, 90, 95)
+)
+my_list$Type         # Access by name
+my_list[[2]]         # Access by position
+my_list$Age[2]    # Accessing elements within a vector in a list
+
+
+```
+
+tidyverse: 
+
+```{r practice2}
+library(tidyverse)
+```
+data.table: 
+
+``` {r practice3} 
+mtcars 
+View(mtcars)
+mtcars[, 1] # Returns a tibble 
+as.data.frame(mtcars)[, 1] # Returns a data frame 
+
+```
+
+dplyr: 
+```{r practice4}
+head(mtcars) # First six rows of data 
+str(mtcars) # Shows size of the data set and the types of variables in each column 
+summary(mtcars) # Summarizes the values for each variable 
+names(mtcars) # Lists all column names 
+
+select(mtcars, mpg, wt) # Selects only mpg and wt columns 
+select(mtcars, -mpg, -wt) # Selects all but mpg and wt columns 
+select(mtcars, 2, 3, 8) # Selects columns 2, 3, and 8 
+select(mtcars, mpg:wt) #Selects all columns in the range of mpg to wt 
+select(mtcars, last_col()) # Selects the rightmost column 
+select(mtcars, last_col(offset = 4))  # Selects fifth-to-last column
+select(mtcars, starts_with("m")) # Selects the columns that start with m
+select(mtcars, ends_with("g")) # Selects the columns that end with g 
+select(mtcars, contains("p")) # Selects the columns that contain p 
+select(mtcars, -contains("p")) # Selects the columns that do not contain p 
+rename(mtcars, weight=wt) # Renames wt column to weight 
+mtcars <- rename(mtcars, weight=wt) # Saves to mtcars object in order to change the data frame 
+rename(mtcars, wt=weight) # Renames weight column back to wt 
+mtcars <- rename(mtcars, wt=weight) # Reverts mtcars to original 
+
+filter(mtcars, cyl == 6) # Chooses only the rows where cyl is 6 
+filter(mtcars, cyl == 4 & mpg < 30) # Chooses only the rows where cyl is 4 and mpg is less than 30 
+filter(mtcars, cyl == 4, mpg < 30) # Same as the previous result 
+
+# Pipe 
+mtcars |> # From mtcars, select only mpg and wt columns, then choose the rows with mpg below 30 
+    select(mpg, wt) |>
+    filter(mpg < 30) 
+table(mtcars$cyl) |> sort() # Create a table for number of observations for each value of cyl 
+
+mutate(mtcars, cyl = 1 + cyl) |> # Replaces each entry for cyl with 1 greater than that value 
+  select(cyl) 
+mtcars %>% # create hp and then use it to create hpnorm
+  mutate(hp = 10 + hp, 
+         hpnorm = ifelse(hp < 100, 100, hp)) %>%
+  select(starts_with("hp")) %>%
+  filter(hp < 100)
+```
+
+ggplot2 
+``` {r practice}
+library(ggplot2)
+qplot(x = wt, y = mpg, geom = "point", data = mtcars) # Plots wt against mpg 
+cor(mtcars$wt, mtcars$mpg) # Calculates correlation coefficient 
+qplot(wt, mpg, geom = "point", data = mtcars) + 
+    geom_smooth(method = "lm") # plots a linear regression line 
+qplot(mpg, wt, geom = "point", data = mtcars, colour = gear) # Color by gear 
+qplot(hp, data = mtcars, binwidth = 10) # Histogram of distribution of hp
+mtcars[which.max(mtcars$hp),] # Finds the data point with the highest hp 
+
+mean(mtcars$hp[mtcars$vs == 0]) # Average hp when vs is 0 
+mean(mtcars$hp[mtcars$vs == 1]) # Average hp when vs is 1 
+t.test(hp ~ vs, data = mtcars) # Tests whether the means are statistically different 
+qplot(mpg, wt, geom = "point", data = mtcars, facets=vs~am) # Facetting to show whether the relationship between mpg and wt depends on vs and am 
+```
