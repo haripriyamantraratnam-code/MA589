@@ -1,0 +1,516 @@
+---
+title: "Homework 3"
+output:
+  pdf_document: default
+  word_document: default
+date: "2025-10-04"
+---
+
+Priya Mantraratnam 
+
+```{r setup, include=FALSE}
+# shows all inputs and all outputs 
+knitr::opts_chunk$set(echo = TRUE) 
+```
+
+Continuous target variable: Population, low access to store (% change), 2015 -19 [PCH_LACCESS_POP_15_19] [ACCESS]
+
+Continuous predictor variables: nine variables with per capita alternatives   
+1. Grocery stores (% change), 2016-20 [PCH_GROC_16_20] [STORES]
+   Grocery stores/1,000 pop (% change), 2016-20 [PCH_GROCPTH_16_20]
+2. Supercenters & club stores (% change), 2016-20 [PCH_SUPERC_16_20]
+   Supercenters & club stores/1,000 pop (% change), 2016-20 [PCH_SUPERCPTH_16_20]
+3. Convenience stores (% change), 2016-20 [PCH_CONVS_16_20]
+   Convenience stores/1,000 pop (% change), 2016-20 [PCH_CONVSPTH_16_20]
+4. Specialized food stores (% change), 2016-20 [PCH_SPECS_16_20]
+   Specialized food stores/1,000 pop (% change), 2016-20 [PCH_SPECSPTH_16_20]
+5. SNAP-authorized stores (% change), 2017-23 [PCH_SNAPS_17_23]
+   SNAP-authorized stores/1,000 pop (% change), 2017-23 [PCH_SNAPSPTH_17_23]
+6. WIC-authorized stores (% change), 2016-22 [PCH_WICS_16_22]
+   WIC-authorized stores/1,000 pop (% change), 2016-22 [PCH_WICSPTH_16_22]
+7. Fast-food restaurants (% change), 2016-20 [PCH_FFR_16_20]
+   Fast-food restaurants/1,000 pop (% change), 2016-20 [PCH_FFRPTH_16_20] 
+8. Full-service restaurants (% change), 2016-20 [PCH_FSR_16_20]
+   Full-service restaurants/1,000 pop (% change), 2016-20 [PCH_FSRPTH_16_20]
+9. Direct farm sales (% change), 2012 - 17 [PCH_DIRSALES_12_17] [LOCAL]
+   Direct farm sales per capita (% change), 2012 - 17 [PCH_PC_DIRSALES_12_17]
+
+Binary variable to add later on: 
+Persistent-poverty counties, 2017-21 [PERPOV17_21] [SOCIOECONOMIC]
+
+``` {r 1}
+install.packages("ggfortify", repos="http://cran.us.r-project.org")
+install.packages("mvnormtest", repos="http://cran.us.r-project.org")
+install.packages("datarium", repos="http://cran.us.r-project.org")
+install.packages("ggplot2", repos="http://cran.us.r-project.org")
+install.packages("car", repos="http://cran.us.r-project.org")
+
+library(MASS)
+library(car) 
+library(datarium)
+library(ggplot2)
+library(broom) 
+library(ggfortify)
+library(tidyverse)
+library(mvnormtest)
+```
+
+``` {r 1.1}
+
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "ACCESS", skip = 1)
+ access <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "ACCESS", skip = 1)
+ access 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "STORES", skip = 1)
+ stores <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "STORES", skip = 1)
+ stores 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "RESTAURANTS", skip = 1)
+ restaurants <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "RESTAURANTS", skip = 1)
+ restaurants 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "LOCAL", skip = 1)
+ local <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "LOCAL", skip = 1)
+ local 
+ 
+atlasog = merge(access, stores, by.x = "FIPS", by.y = "FIPS")
+atlasog = merge(atlasog, restaurants, by.x = "FIPS", by.y = "FIPS")
+atlasog = merge(atlasog, local, by.x = "FIPS", by.y = "FIPS")
+
+```
+
+Scatter plots and regression: 
+
+``` {r 2}
+atlas = select(atlasog, PCH_LACCESS_POP_15_19, PCH_GROC_16_20, PCH_SUPERC_16_20, PCH_CONVS_16_20, PCH_SPECS_16_20, PCH_SNAPS_17_23, PCH_WICS_16_22, PCH_FFR_16_20, PCH_FSR_16_20, PCH_DIRSALES_12_17)
+atlas = filter(atlas, PCH_LACCESS_POP_15_19 != -9999, PCH_GROC_16_20 != -9999, PCH_SUPERC_16_20 != -9999, PCH_CONVS_16_20 != -9999, PCH_SPECS_16_20 != -9999, PCH_SNAPS_17_23 != -9999, PCH_WICS_16_22 != -9999, PCH_FFR_16_20 != -9999, PCH_FSR_16_20 != -9999, PCH_DIRSALES_12_17 != -9999)
+atlas = filter(atlas, PCH_LACCESS_POP_15_19 != -8888, PCH_GROC_16_20 != -8888, PCH_SUPERC_16_20 != -8888, PCH_CONVS_16_20 != -8888, PCH_SPECS_16_20 != -8888, PCH_SNAPS_17_23 != -8888, PCH_WICS_16_22 != -8888, PCH_FFR_16_20 != -8888, PCH_FSR_16_20 != -8888, PCH_DIRSALES_12_17 != -8888)
+atlas2 = filter(atlas, PCH_LACCESS_POP_15_19 <5000, PCH_GROC_16_20 <5000, PCH_SUPERC_16_20 <5000, PCH_CONVS_16_20 <5000, PCH_SPECS_16_20 <5000, PCH_SNAPS_17_23 <5000, PCH_WICS_16_22 <5000, PCH_FFR_16_20 <5000, PCH_FSR_16_20 <5000, PCH_DIRSALES_12_17 <5000)
+
+#normalize predictors 
+colMeans(atlas2) 
+mutate(atlas2, PCH_GROC_16_20 = PCH_GROC_16_20 + 0.7079341) |> 
+select(PCH_GROC_16_20)
+mutate(atlas2, PCH_SUPERC_16_20 = PCH_SUPERC_16_20 - 68.9385445) |> 
+select(PCH_SUPERC_16_20)
+mutate(atlas2, PCH_CONVS_16_20 = PCH_CONVS_16_20 - 2.6007777) |> 
+select(PCH_CONVS_16_20)
+mutate(atlas2, PCH_SPECS_16_20 = PCH_SPECS_16_20 + 0.6579917) |> 
+select(PCH_SPECS_16_20)
+mutate(atlas2, PCH_SNAPS_17_23 = PCH_SNAPS_17_23 - 11.6952787) |> 
+select(PCH_SNAPS_17_23)
+mutate(atlas2, PCH_WICS_16_22 = PCH_WICS_16_22 + 5.6402305) |> 
+select(PCH_WICS_16_22)
+mutate(atlas2, PCH_FFR_16_20 = PCH_FFR_16_20 - 6.6306411) |> 
+select(PCH_FFR_16_20)
+mutate(atlas2, PCH_FSR_16_20 = PCH_FSR_16_20 - 1.8834212) |> 
+select(PCH_FSR_16_20)
+mutate(atlas2, PCH_DIRSALES_12_17 = PCH_DIRSALES_12_17 - 106.6679969) |> 
+select(PCH_DIRSALES_12_17)
+
+atlas2_long <- atlas2 |>
+  pivot_longer(cols = c("PCH_GROC_16_20", "PCH_SUPERC_16_20", "PCH_CONVS_16_20", "PCH_SPECS_16_20", "PCH_SNAPS_17_23", "PCH_WICS_16_22", "PCH_FFR_16_20", "PCH_FSR_16_20", "PCH_DIRSALES_12_17"),
+               names_to = "sources",
+               values_to = "food")
+atlas2_long 
+
+model <- lm(PCH_LACCESS_POP_15_19 ~ ., data = atlas2)
+model
+
+predict(model, newdata=data.frame(PCH_GROC_16_20=1, PCH_SUPERC_16_20=1, PCH_CONVS_16_20=1, PCH_SPECS_16_20=1, PCH_SNAPS_17_23=1, PCH_WICS_16_22=1, PCH_FFR_16_20=1, PCH_FSR_16_20=1, PCH_DIRSALES_12_17=1))
+
+summary(model)
+confint(model)
+anova(model)
+
+```
+
+1. Variable Selection (R) Consider a dataset with a large number of predictor variables. Perform the following variable selection methods: Best Subset Selection, Sequential Selection Methods, Ridge, Lasso, Principal Components Regression, Partial Least Squares. Compare and contrast them for variable selection on the same dataset. Discuss the selected variables and their performance.
+
+Best Subset Selection: I need coding help here. R is not running the summary of my data because it is in list form; I tried unlisting but it did not work. 
+
+``` {r best subset}
+
+install.packages("leaps",repos = "http://cran.us.r-project.org")
+install.packages("glmnet",repos = "http://cran.us.r-project.org")
+
+library(MASS)
+library(leaps)
+library(glmnet)
+
+Y <- as.numeric(atlas2[,1])
+X <- as.matrix(atlas2[,-1])
+
+Y <- Y- mean(Y)
+Y
+
+X <- t(t(X) -colMeans(X))
+
+cor(atlas2)
+
+plot(atlas2,pch=16,cex=.5)
+
+# need help here: this code is not running properly even after I tried unlisting each variable 
+atlas2$PCH_LACCESS_POP_15_19 <- unlist(atlas2$PCH_LACCESS_POP_15_19)
+atlas2$PCH_GROC_16_20 <- unlist(atlas2$PCH_GROC_16_20)
+atlas2$PCH_SUPERC_16_20 <- unlist(atlas2$PCH_SUPERC_16_20)
+atlas2$PCH_CONVS_16_20 <- unlist(atlas2$PCH_CONVS_16_20)
+atlas2$PCH_SPECS_16_20 <- unlist(atlas2$PCH_SPECS_16_20)
+atlas2$PCH_SNAPS_17_23 <- unlist(atlas2$PCH_SNAPS_17_23)
+atlas2$PCH_WICS_16_22 <- unlist(atlas2$PCH_WICS_16_22)
+atlas2$PCH_FFR_16_20 <- unlist(atlas2$PCH_PCH_FFR_16_20)
+atlas2$PCH_FSR_16_20 <- unlist(atlas2$PCH_FSR_16_20)
+atlas2$PCH_DIRSALES_12_17 <- unlist(atlas2$PCH_DIRSALES_12_17)
+atlas2$X <- unlist(atlas2$X)
+atlas2$Y <- unlist(atlas2$Y)
+#fit <- lm(atlas2~.,data=atlas2)
+#summary(fit)
+
+#fit0 <- lm(atlas2~1,data=atlas2)
+#summary(fit0)
+
+#fit_bsub <- regsubsets(x=atlas2[,2:9],y=atlas2[,1])
+#summary(fit_bsub)
+
+#fit_bsub$rss
+
+```
+
+Sequential Selection Methods 
+Error: no terms component or attribute 
+
+``` {r sequential}
+
+# forward step-wise via BIC 
+#fit_forw <- stepAIC(atlas2,scope=PCH_LACCESS_POP_15_19~PCH_GROC_16_20+PCH_SUPERC_16_20+PCH_CONVS_16_20+PCH_SPECS_16_20+PCH_SNAPS_17_23+PCH_WICS_16_22+PCH_FFR_16_20+PCH_FSR_16_20+PCH_DIRSALES_12_17,
+#                    direction="forward",data=atlas2,k=log(nrow(atlas2))
+#summary(fit_forw)
+#trying again with atlas2_long 
+#fit_forw <- stepAIC(atlas2_long,scope=PCH_LACCESS_POP_15_19~PCH_GROC_16_20+PCH_SUPERC_16_20+PCH_CONVS_16_20+PCH_SPECS_16_20+PCH_SNAPS_17_23+PCH_WICS_16_22+PCH_FFR_16_20+PCH_FSR_16_20+PCH_DIRSALES_12_17,
+                    #direction="forward",data=atlas2_long,k=log(nrow(atlas2_long)))
+#summary(fit_forw)
+
+# backward step-wise via BIC 
+#fit_back <- stepAIC(fit,direction="backward",data=atlas2,k=log(nrow(atlas2)))
+#summary(fit_back)
+
+```
+
+Ridge 
+Line 516 error: error in evaluating the argument 'a' in selecting a method for function 'solve': non-conformable arrays 
+
+``` {r ridge}
+
+lam <- 1*nrow(atlas2)
+
+beta_ls <- solve(t(X)%*%X)%*%t(X)%*%Y
+#beta_r <- solve(t(X)%*%X + diag(rep(lam,8)))%*%t(X)%*%Y
+#cbind(beta_ls,beta_r)
+
+# coefficient paths 
+
+lambdas <- exp(seq(log(.01),log(100*nrow(atlas2)),l=100))
+betasr <- matrix(0,length(lambdas),8)
+#for(i in 1:length(lambdas))
+#{
+#  betasr[i,] = solve(t(X)%*%X + diag(rep(lambdas[i],8)))%*%t(X)%*%Y
+#}
+
+#betasr
+
+#plot(c(1,length(lambdas)),range(betasr),type="n",ylab="Coefficients",xlab="Lambda Index")
+#for(j in 1:8)
+#{
+#  lines(betasr[length(lambdas):1,j],col=j)
+#}
+#legend(0,20,legend=names(atlas2)[2:9],col=1:8,lty=rep(1,8))
+
+
+```
+
+Lasso 
+
+Here the lasso paths do not cross over at all, so the order of the coefficients does not change. Supercenters, specialized food stores, and direct farm sales went to zero. The MSE is not changing much with lambda as it did in the example in class. Any log lambda less than or equal to 1 would include all the variables selected by lasso: grocery stores, convenience stores, SNAPS accepting stores, WICS accepting stores, fast food restaurants, and full-service restaurants. These are four more variables than were significant in the original linear regression. 
+
+``` {r lasso paths}
+
+fitl <- glmnet(x=X,y=Y,family="gaussian",alpha=1)
+plot(fitl,col=1:8)
+legend(0,19,legend=names(atlas2)[2:9],col=1:8,lty=rep(1,8),cex=.8)
+
+plot(fitl, xvar = "lambda", label = TRUE)
+plot(fitl, xvar = "dev", label = TRUE)
+
+cvfit <- cv.glmnet(X, Y)
+print(cvfit)
+plot(cvfit)
+
+cvfit$lambda.min
+coef(cvfit, s = "lambda.min")
+predict(cvfit, newx = X[1:5,], s = "lambda.min")
+Y[1:5]
+
+cvfit2 <- cv.glmnet(X, Y, type.measure = "mse", nfolds = 5)
+print(cvfit2)
+cvfit2$lambda.min
+plot(cvfit2)
+
+```
+
+Principal Components Regression 
+Error in lambdas, so tried to partially run the ridge section. 
+Then error in line 616: error in evaluating the argument 'x' in selecting a method for function 'mean': object 'fit' not found
+(This would hopefully fix itself after the best subset portion is fixed.)
+
+``` {r principal components}
+
+svdx = svd(X)
+svdx$d
+svdx$v
+
+par(mar=c(1,1,1,1))
+layout(matrix(1:25,5,5))
+mycols = rainbow(length(Y))
+orY = order(Y)
+for(i in 1:5)
+{
+  for(j in 1:5)
+    {
+      plot(svdx$u[,i],svdx$u[,j],type="p",pch=16,col=mycols[orY])
+    }
+}
+
+#amount of variance explained 
+varex = 0; cumvarex = 0;
+for(i in 1:8)
+{
+  varex[i] = svdx$d[i]^2/sum(svdx$d^2)
+  cumvarex[i] = sum(varex)
+}
+par(mfrow=c(1,2))
+par(mar=c(5,4,4,2))
+barplot(varex,ylab="Amount of Var Explained",xlab="PCs")
+barplot(cumvarex,ylab="Cummulative Var Explained",xlab="PCs")
+
+# ridge paths again 
+
+plot(c(1,length(lambdas)),range(betasr),type="n",ylab="Coefficients",xlab="Lambda Index")
+for(j in 1:8)
+{
+  lines(betasr[length(lambdas):1,j],col=j)
+}
+legend(0,20,legend=names(atlas2)[2:9],col=1:9,lty=rep(1,9))
+
+# pc regression 
+
+betapcr <- diag(svdx$d)%*%t(svdx$u)%*%Y
+ypcr <- svdx$u[,1:2]%*%t(svdx$u[,1:2])%*%Y
+#mean((predict(fit)-atlas2[,1])^2)
+#mean((ypcr-Y)^2)
+#mse_pcr <- NULL
+#for(i in 1:8){
+#    ypcr <- svdx$u[,1:i]%*%t(svdx$u[,1:i])%*%Y
+#    mse_pcr <- c(mse_pcr, mean((ypcr-Y)^2))
+#}
+#mse_pcr
+
+```
+
+Partial Least Squares 
+From the PLS method, there are high correlations for every entry on the diagonal except for the second and third. These are supercenters and convenience stores. This model chooses all other variables, which is three more than the four included in the original regression. 
+
+``` {r PLS}
+
+plsfunc <- function(x,y)
+{
+    p <- ncol(x)
+    n <- nrow(x)
+    M <- t(x)%*%y
+    Z <- NULL; V <- NULL; P <- NULL;
+    for(k in 1:p){
+      svdm <- svd(M)
+      z <- x%*%svdm$u
+      z <- z*as.numeric(1/sqrt(t(z)%*%z))
+      V <- cbind(V,svdm$u)
+      p <- t(x)%*%z/as.numeric(t(z)%*%z)
+      P <- cbind(P,p);
+      Z <- cbind(Z,z);
+      M <- M - P%*%solve(t(P)%*%P)%*%t(P)%*%M;
+    }
+  return(list(Z=Z,V=V))
+}
+ 
+plsx <- plsfunc(X,Y)
+
+# scatterplots of PLS components 
+
+par(mar=c(1,1,1,1))
+layout(matrix(1:81,9,9))
+mycols <- rainbow(length(Y))
+orY <- order(Y)
+for(i in 1:9)
+{
+  for(j in 1:9)
+    {
+      plot(plsx$Z[,i],plsx$Z[,j],type="p",pch=16,col=mycols[orY])
+    }
+}
+
+betapls = t(plsx$Z)%*%Y
+
+cbind(betapcr,betapls)
+
+```
+
+Compare and contrast variable selection across methods: 
+
+The selected variables and their performance: 
+
+
+2. Model Assessment (R) Choose a dataset and split into training/validation sets. Implement linear regression models (degrees 1 to 10) in R.
+You have developed multiple linear regression models for a dataset, but you are unsure which model to choose. Use the following model assessment techniques:
+A. Bias-Variance Tradeoff: Explain the concept of bias-variance tradeoff in the context of model selection. Evaluate the bias and variance of your models and discuss how they relate to model complexity.
+B. Information Criteria: Calculate and compare the Akaike Information Criterion (AIC), Bayesian Information Criterion (BIC), and F statistic for your models. Interpret the results and recommend the best model based on these criteria. 
+
+The concept of bias-variance trade-off is that when you choose between estimators, you are choosing between reducing bias or reducing variance. The expected prediction error and therefore the mean squared error both include terms for squared bias and variance. Regularizing the model through different methods of shrinking, dampening, or controlling the estimates will reduce variance while increasing bias. As long as the increase in bias is smaller than the decrease in variance, this is a helpful tradeoff to make. 
+
+``` {r bias variance}
+
+# L1 regularization 
+
+fit1 <- lm(Y~X-1,data=atlas2)
+lam <- .01
+fitl <- glmnet(x=X,y=Y,family="gaussian",lambda=lam,alpha=1)
+cbind(fit1$coef,as.matrix(fitl$beta))
+
+
+# model complexity and prediction error 
+
+n = 100
+p = 50
+Btrue = matrix(0,p,1)
+Btrue[1:10] = rnorm(10)*.75
+Btrue[11:20] = rnorm(10)*.5
+
+Xtr = scale(matrix(rnorm(n*p),n,p))
+Ytr = Xtr%*%Btrue + matrix(rnorm(n),n,1)
+Xts = scale(matrix(rnorm(n*p),n,p))
+Yts = Xts%*%Btrue + matrix(rnorm(n),n,1)
+
+fit = glmnet(x=Xtr,y=Ytr,family="gaussian",standardize=FALSE,nlambda=50,lambda.min.ratio=.001)
+Yhtr = predict(fit,newx=Xtr)
+MSEtr = apply((Yhtr-Ytr%*%matrix(1,1,length(fit$lambda)))^2,2,mean)
+Yhts = predict(fit,newx=Xts)
+MSEts = apply((Yhts-Yts%*%matrix(1,1,length(fit$lambda)))^2,2,mean)
+
+plot(1:length(fit$lambda),MSEtr,type="l",col=4,xlab="Lambda Index",ylab="Error")
+lines(1:length(fit$lambda),MSEtr,col=4)
+lines(1:length(fit$lambda),MSEts,col=2)
+legend(30,5,legend=c("Training Error","Test Error"),col=c(4,2),lty=c(1,1),cex=.75)
+
+```
+
+3. Cross-Validation (R) Explain the concept of cross-validation and its importance in model assessment. Compare k-fold cross-validation and leave-one-out cross-validation. Perform cross-validation on your models to assess their predictive performance:
+A. K-Fold Cross-Validation: Implement K-fold cross-validation (choose an appropriate value of K) on your models and calculate the mean squared error (MSE) for each fold. Report the average MSE and discuss its significance.
+B. Leave-One-Out Cross-Validation (LOOCV): Apply LOOCV to evaluate the performance of your models. Compare the results with K-fold cross-validation and discuss the pros and cons of each method.
+
+   Cross-validation is a nonparametric method to validate the data by reusing the data efficiently. Ideally there would be enough data to set aside a training set without affecting estimation accuracy, but we use cross-validation when there is not enough data. 
+   K-fold cross-validation randomly splits the data into K parts of about the same size and fits a model for each part using all the other parts. For each model, we find the prediction error on the kth part. Then we average all of the errors to find an estimate of the prediction error. This is a direct estimate of the error outside the sample. 
+    Leave-One-Out cross-validation uses all observations but one and repeats the process n times so that each observation was excluded one time. This method gives an approximately unbiased prediction error, but the variance can be high because the training sets are alike. It can also take a long time to run. In comparison, k-fold cross-validation usually has a low variance but could have a large bias. If the error is much higher for smaller training sets, then 5-fold or 10-fold cross-validation could give too-high prediction errors. 
+    
+   The average training error for 5-fold CV is 1.044289 compared to the testing error of 1.40464. LOO cross-validation gives a training error of 0.8705967 and a testing error of 1.253238. Here it appears that 5-fold is better because the difference between the training and testing errors is smaller. 
+    
+
+``` {r cross validation}
+install.packages("leaps",repos = "http://cran.us.r-project.org")
+install.packages("glmnet",repos = "http://cran.us.r-project.org")
+
+library(MASS)
+library(leaps)
+library(glmnet)
+
+fold = 5
+sam = sample(1:n,n)
+CVerrs = NULL
+for(i in 1:fold)
+{
+  ind = sam[((i-1)*n/fold + 1):(i*n/fold)]
+  Xin = Xtr[-ind,]; Yin = Ytr[-ind]
+  Xout = Xtr[ind,]; Yout = Ytr[ind]
+  fit = glmnet(x=Xin,y=Yin,family="gaussian",standardize=FALSE,nlambda=50,lambda.min.ratio=.001)
+  Yh = predict(fit,newx=Xout)
+  CVerrs = cbind(CVerrs,apply((Yh-Yout%*%matrix(1,1,length(fit$lambda)))^2,2,mean))
+}
+CVerr = apply(CVerrs,1,mean)
+
+plot(1:length(fit$lambda),MSEtr,type="l",col=4,xlab="Lambda Index",ylab="Error")
+lines(1:length(fit$lambda),MSEtr,col=4)
+lines(1:length(fit$lambda),MSEts,col=2)
+legend(30,5,legend=c("Training Error","Test Error"),col=c(4,2),lty=c(1,1),cex=.75)
+lines(1:length(fit$lambda),CVerr,col=1)
+
+# test error 
+fit = glmnet(x=Xtr,y=Ytr,family="gaussian",standardize=FALSE,nlambda=50,lambda.min.ratio=.001)
+optlam = fit$lambda[which.min(CVerr)]
+optlam
+
+fit = glmnet(x=Xtr,y=Ytr,family="gaussian",standardize=FALSE,lambda=optlam)
+Yhtr = predict(fit,newx=Xtr)
+TRerr = mean( (Yhtr - Ytr)^2 )
+Yhts = predict(fit,newx=Xts)
+TSerr = mean( (Yhts - Yts)^2 )
+sum(fit$beta!=0)
+
+TRerr
+TSerr
+
+#now LOO 
+fold = n
+sam = sample(1:n,n)
+CVerrs = NULL
+for(i in 1:fold)
+{
+  ind = sam[((i-1)*n/fold + 1):(i*n/fold)]
+  Xin = Xtr[-ind,]; Yin = Ytr[-ind]
+  Xout = Xtr[ind,]; Yout = Ytr[ind]
+  fit = glmnet(x=Xin,y=Yin,family="gaussian",standardize=FALSE,nlambda=50,lambda.min.ratio=.001)
+  Yh = predict(fit,newx=Xout)
+  CVerrs = cbind(CVerrs,apply((Yh-Yout%*%matrix(1,1,length(fit$lambda)))^2,2,mean))
+}
+CVerr = apply(CVerrs,1,mean)
+
+plot(1:length(fit$lambda),MSEtr,type="l",col=4,xlab="Lambda Index",ylab="Error")
+lines(1:length(fit$lambda),MSEtr,col=4)
+lines(1:length(fit$lambda),MSEts,col=2)
+legend(30,5,legend=c("Training Error","Test Error"),col=c(4,2),lty=c(1,1),cex=.75)
+lines(1:length(fit$lambda),CVerr,col=1)
+
+fit = glmnet(x=Xtr,y=Ytr,family="gaussian",standardize=FALSE,nlambda=50,lambda.min.ratio=.001)
+optlam = fit$lambda[which.min(CVerr)]
+optlam
+
+fit = glmnet(x=Xtr,y=Ytr,family="gaussian",standardize=FALSE,lambda=optlam)
+Yhtr = predict(fit,newx=Xtr)
+TRerr = mean( (Yhtr - Ytr)^2 )
+Yhts = predict(fit,newx=Xts)
+TSerr = mean( (Yhts - Yts)^2 )
+sum(fit$beta!=0)
+
+TRerr
+TSerr
+
+
+```
+

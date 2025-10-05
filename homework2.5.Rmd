@@ -1,0 +1,432 @@
+---
+title: "Homework 2.5"
+output:
+  pdf_document: default
+  word_document: default
+date: "2025-10-04"
+---
+
+Priya Mantraratnam 
+
+I am first adding a model with per-capita variables to consider before starting homework 3. Homework 2's models are also included below. 
+
+```{r setup, include=FALSE}
+# shows all inputs and all outputs 
+knitr::opts_chunk$set(echo = TRUE) 
+```
+
+Continuous target variable: Population, low access to store (% change), 2015 -19 [PCH_LACCESS_POP_15_19] [ACCESS]
+
+Continuous predictor variables: nine variables with per capita alternatives   
+1. Grocery stores (% change), 2016-20 [PCH_GROC_16_20] [STORES]
+   Grocery stores/1,000 pop (% change), 2016-20 [PCH_GROCPTH_16_20]
+2. Supercenters & club stores (% change), 2016-20 [PCH_SUPERC_16_20]
+   Supercenters & club stores/1,000 pop (% change), 2016-20 [PCH_SUPERCPTH_16_20]
+3. Convenience stores (% change), 2016-20 [PCH_CONVS_16_20]
+   Convenience stores/1,000 pop (% change), 2016-20 [PCH_CONVSPTH_16_20]
+4. Specialized food stores (% change), 2016-20 [PCH_SPECS_16_20]
+   Specialized food stores/1,000 pop (% change), 2016-20 [PCH_SPECSPTH_16_20]
+5. SNAP-authorized stores (% change), 2017-23 [PCH_SNAPS_17_23]
+   SNAP-authorized stores/1,000 pop (% change), 2017-23 [PCH_SNAPSPTH_17_23]
+6. WIC-authorized stores (% change), 2016-22 [PCH_WICS_16_22]
+   WIC-authorized stores/1,000 pop (% change), 2016-22 [PCH_WICSPTH_16_22]
+7. Fast-food restaurants (% change), 2016-20 [PCH_FFR_16_20]
+   Fast-food restaurants/1,000 pop (% change), 2016-20 [PCH_FFRPTH_16_20] 
+8. Full-service restaurants (% change), 2016-20 [PCH_FSR_16_20]
+   Full-service restaurants/1,000 pop (% change), 2016-20 [PCH_FSRPTH_16_20]
+9. Direct farm sales (% change), 2012 - 17 [PCH_DIRSALES_12_17] [LOCAL]
+   Direct farm sales per capita (% change), 2012 - 17 [PCH_PC_DIRSALES_12_17]
+
+Binary variable to add later on: 
+Persistent-poverty counties, 2017-21 [PERPOV17_21] [SOCIOECONOMIC]
+
+``` {r 1}
+install.packages("ggfortify", repos="http://cran.us.r-project.org")
+install.packages("mvnormtest", repos="http://cran.us.r-project.org")
+install.packages("datarium", repos="http://cran.us.r-project.org")
+install.packages("ggplot2", repos="http://cran.us.r-project.org")
+install.packages("car", repos="http://cran.us.r-project.org")
+
+library(MASS)
+library(car) 
+library(datarium)
+library(ggplot2)
+library(broom) 
+library(ggfortify)
+library(tidyverse)
+library(mvnormtest)
+```
+
+``` {r 1.1}
+
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "ACCESS", skip = 1)
+ access <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "ACCESS", skip = 1)
+ access 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "STORES", skip = 1)
+ stores <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "STORES", skip = 1)
+ stores 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "RESTAURANTS", skip = 1)
+ restaurants <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "RESTAURANTS", skip = 1)
+ restaurants 
+ 
+library(readxl)
+ X2025_food_environment_atlas_data <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "LOCAL", skip = 1)
+ local <- read_excel("2025-food-environment-atlas-data.xlsx", 
+     sheet = "LOCAL", skip = 1)
+ local 
+ 
+atlasog = merge(access, stores, by.x = "FIPS", by.y = "FIPS")
+atlasog = merge(atlasog, restaurants, by.x = "FIPS", by.y = "FIPS")
+atlasog = merge(atlasog, local, by.x = "FIPS", by.y = "FIPS")
+
+```
+
+Scatter plots and regression: 
+
+``` {r 2}
+atlas = select(atlasog, PCH_LACCESS_POP_15_19, PCH_GROC_16_20, PCH_SUPERC_16_20, PCH_CONVS_16_20, PCH_SPECS_16_20, PCH_SNAPS_17_23, PCH_WICS_16_22, PCH_FFR_16_20, PCH_FSR_16_20, PCH_DIRSALES_12_17)
+atlas = filter(atlas, PCH_LACCESS_POP_15_19 != -9999, PCH_GROC_16_20 != -9999, PCH_SUPERC_16_20 != -9999, PCH_CONVS_16_20 != -9999, PCH_SPECS_16_20 != -9999, PCH_SNAPS_17_23 != -9999, PCH_WICS_16_22 != -9999, PCH_FFR_16_20 != -9999, PCH_FSR_16_20 != -9999, PCH_DIRSALES_12_17 != -9999)
+atlas = filter(atlas, PCH_LACCESS_POP_15_19 != -8888, PCH_GROC_16_20 != -8888, PCH_SUPERC_16_20 != -8888, PCH_CONVS_16_20 != -8888, PCH_SPECS_16_20 != -8888, PCH_SNAPS_17_23 != -8888, PCH_WICS_16_22 != -8888, PCH_FFR_16_20 != -8888, PCH_FSR_16_20 != -8888, PCH_DIRSALES_12_17 != -8888)
+
+# adjust Jupyter plot size 
+options(repr.plot.width=4, repr.plot.height=4) 
+ggplot(atlas) +
+    geom_point(aes(y = PCH_GROC_16_20, x = PCH_LACCESS_POP_15_19), color="red")+
+  geom_point(aes(y = PCH_SUPERC_16_20, x = PCH_LACCESS_POP_15_19), color="green")+
+    geom_point(aes(y = PCH_CONVS_16_20, x = PCH_LACCESS_POP_15_19), color="blue")+
+    geom_point(aes(y = PCH_SPECS_16_20, x = PCH_LACCESS_POP_15_19), color="pink")+
+    geom_point(aes(y = PCH_SNAPS_17_23, x = PCH_LACCESS_POP_15_19), color="yellow")+
+    geom_point(aes(y = PCH_WICS_16_22, x = PCH_LACCESS_POP_15_19), color="gray")+
+    geom_point(aes(y = PCH_FFR_16_20, x = PCH_LACCESS_POP_15_19), color="brown")+
+    geom_point(aes(y = PCH_FSR_16_20, x = PCH_LACCESS_POP_15_19), color="orange")+
+    geom_point(aes(y = PCH_DIRSALES_12_17, x = PCH_LACCESS_POP_15_19), color="purple")+
+    labs(title = "Low Food Access vs. Food Sources",
+         x = "Low Food Access",
+         y = "Food Sources")
+
+#There are two points that are clearly outliers at thousands of percents higher than the others, so I am removing them here 
+atlas2 = filter(atlas, PCH_LACCESS_POP_15_19 <5000, PCH_GROC_16_20 <5000, PCH_SUPERC_16_20 <5000, PCH_CONVS_16_20 <5000, PCH_SPECS_16_20 <5000, PCH_SNAPS_17_23 <5000, PCH_WICS_16_22 <5000, PCH_FFR_16_20 <5000, PCH_FSR_16_20 <5000, PCH_DIRSALES_12_17 <5000)
+
+#normalize predictors 
+colMeans(atlas2) 
+mutate(atlas2, PCH_GROC_16_20 = PCH_GROC_16_20 + 0.7079341) |> 
+select(PCH_GROC_16_20)
+mutate(atlas2, PCH_SUPERC_16_20 = PCH_SUPERC_16_20 - 68.9385445) |> 
+select(PCH_SUPERC_16_20)
+mutate(atlas2, PCH_CONVS_16_20 = PCH_CONVS_16_20 - 2.6007777) |> 
+select(PCH_CONVS_16_20)
+mutate(atlas2, PCH_SPECS_16_20 = PCH_SPECS_16_20 + 0.6579917) |> 
+select(PCH_SPECS_16_20)
+mutate(atlas2, PCH_SNAPS_17_23 = PCH_SNAPS_17_23 - 11.6952787) |> 
+select(PCH_SNAPS_17_23)
+mutate(atlas2, PCH_WICS_16_22 = PCH_WICS_16_22 + 5.6402305) |> 
+select(PCH_WICS_16_22)
+mutate(atlas2, PCH_FFR_16_20 = PCH_FFR_16_20 - 6.6306411) |> 
+select(PCH_FFR_16_20)
+mutate(atlas2, PCH_FSR_16_20 = PCH_FSR_16_20 - 1.8834212) |> 
+select(PCH_FSR_16_20)
+mutate(atlas2, PCH_DIRSALES_12_17 = PCH_DIRSALES_12_17 - 106.6679969) |> 
+select(PCH_DIRSALES_12_17)
+cor(atlas2)
+mshapiro.test(t(atlas2[,1:9])) 
+
+atlas2_long <- atlas2 |>
+  pivot_longer(cols = c("PCH_GROC_16_20", "PCH_SUPERC_16_20", "PCH_CONVS_16_20", "PCH_SPECS_16_20", "PCH_SNAPS_17_23", "PCH_WICS_16_22", "PCH_FFR_16_20", "PCH_FSR_16_20", "PCH_DIRSALES_12_17"),
+               names_to = "sources",
+               values_to = "food")
+atlas2_long 
+
+options(repr.plot.width = NULL, repr.plot.height = NULL)
+ggplot(atlas2_long, aes(x = PCH_LACCESS_POP_15_19, y = food, color = sources)) +
+  geom_point() +
+  labs(title = "Low Food Access vs. Food Sources",
+         x = "Low Food Access",
+         y = "Food Sources") +
+  theme_minimal()
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+ggplot(atlas2_long, aes(sample = food)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~sources, scales = "free") +
+  labs(title = "Q-Q Plots for Food Sources",
+       x = "Theoretical Quantiles", y = "Sample Quantiles")
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+d <- gather(atlas2[,c(1:9)])
+ggplot(d,aes(x = value, color=key)) + 
+    facet_wrap(~key,scales = "free_x") + 
+    geom_histogram(aes(y=after_stat(density)), alpha=0.5, 
+                position="identity",fill="white")+
+    geom_density(alpha=.2) 
+
+model <- lm(PCH_LACCESS_POP_15_19 ~ ., data = atlas2)
+model
+
+predict(model, newdata=data.frame(PCH_GROC_16_20=1, PCH_SUPERC_16_20=1, PCH_CONVS_16_20=1, PCH_SPECS_16_20=1, PCH_SNAPS_17_23=1, PCH_WICS_16_22=1, PCH_FFR_16_20=1, PCH_FSR_16_20=1, PCH_DIRSALES_12_17=1))
+
+summary(model)
+confint(model)
+anova(model)
+
+# rerunning the regression after omitting insigificant variables 
+
+atlas3 = select(atlas2, PCH_LACCESS_POP_15_19, PCH_GROC_16_20, PCH_CONVS_16_20, PCH_FFR_16_20, PCH_FSR_16_20)
+
+atlas3_long <- atlas3 |>
+  pivot_longer(cols = c("PCH_GROC_16_20", "PCH_CONVS_16_20", "PCH_FFR_16_20", "PCH_FSR_16_20"),
+               names_to = "sources",
+               values_to = "food")
+atlas3_long 
+
+options(repr.plot.width = NULL, repr.plot.height = NULL)
+ggplot(atlas3_long, aes(x = PCH_LACCESS_POP_15_19, y = food, color = sources)) +
+  geom_point() +
+  labs(title = "Low Food Access vs. Food Sources",
+         x = "Low Food Access",
+         y = "Food Sources") +
+  theme_minimal()
+
+colMeans(atlas3) 
+cor(atlas3)
+mshapiro.test(t(atlas3[,1:3])) 
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+ggplot(atlas3_long, aes(sample = food)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~sources, scales = "free") +
+  labs(title = "Q-Q Plots for Food Sources",
+       x = "Theoretical Quantiles", y = "Sample Quantiles")
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+d <- gather(atlas3[,c(1:3)])
+ggplot(d,aes(x = value, color=key)) + 
+    facet_wrap(~key,scales = "free_x") + 
+    geom_histogram(aes(y=after_stat(density)), alpha=0.5, 
+                position="identity",fill="white")+
+    geom_density(alpha=.2) 
+
+model2 <- lm(PCH_LACCESS_POP_15_19 ~ ., data = atlas3)
+model2
+
+
+predict(model2, newdata=data.frame(PCH_GROC_16_20=1,PCH_CONVS_16_20=1,PCH_FFR_16_20=1,PCH_FSR_16_20=1)) 
+
+summary(model2)
+confint(model2)
+anova(model2)
+
+```
+
+``` {r 2.1}
+
+#per capita variables 
+atlaspc = select(atlasog, PCH_LACCESS_POP_15_19, PCH_GROCPTH_16_20, PCH_SUPERCPTH_16_20, PCH_CONVSPTH_16_20, PCH_SPECSPTH_16_20, PCH_SNAPSPTH_17_23, PCH_WICSPTH_16_22, PCH_FFRPTH_16_20, PCH_FSRPTH_16_20, PCH_PC_DIRSALES_12_17)
+atlaspc = filter(atlaspc, PCH_LACCESS_POP_15_19 != -9999, PCH_GROCPTH_16_20 != -9999, PCH_SUPERCPTH_16_20 != -9999, PCH_CONVSPTH_16_20 != -9999, PCH_SPECSPTH_16_20 != -9999, PCH_SNAPSPTH_17_23 != -9999, PCH_WICSPTH_16_22 != -9999, PCH_FFRPTH_16_20 != -9999, PCH_FSRPTH_16_20 != -9999, PCH_PC_DIRSALES_12_17 != -9999)
+atlaspc = filter(atlaspc, PCH_LACCESS_POP_15_19 != -8888, PCH_GROCPTH_16_20 != -8888, PCH_SUPERCPTH_16_20 != -8888, PCH_CONVSPTH_16_20 != -8888, PCH_SPECSPTH_16_20 != -8888, PCH_SNAPSPTH_17_23 != -8888, PCH_WICSPTH_16_22 != -8888, PCH_FFRPTH_16_20 != -8888, PCH_FSRPTH_16_20 != -8888, PCH_PC_DIRSALES_12_17 != -8888)
+
+# adjust Jupyter plot size 
+options(repr.plot.width=4, repr.plot.height=4) 
+ggplot(atlaspc) +
+    geom_point(aes(y = PCH_GROCPTH_16_20, x = PCH_LACCESS_POP_15_19), color="red")+
+  geom_point(aes(y = PCH_SUPERCPTH_16_20, x = PCH_LACCESS_POP_15_19), color="green")+
+    geom_point(aes(y = PCH_CONVSPTH_16_20, x = PCH_LACCESS_POP_15_19), color="blue")+
+    geom_point(aes(y = PCH_SPECSPTH_16_20, x = PCH_LACCESS_POP_15_19), color="pink")+
+    geom_point(aes(y = PCH_SNAPSPTH_17_23, x = PCH_LACCESS_POP_15_19), color="yellow")+
+    geom_point(aes(y = PCH_WICSPTH_16_22, x = PCH_LACCESS_POP_15_19), color="gray")+
+    geom_point(aes(y = PCH_FFRPTH_16_20, x = PCH_LACCESS_POP_15_19), color="brown")+
+    geom_point(aes(y = PCH_FSRPTH_16_20, x = PCH_LACCESS_POP_15_19), color="orange")+
+    geom_point(aes(y = PCH_PC_DIRSALES_12_17, x = PCH_LACCESS_POP_15_19), color="purple")+
+    labs(title = "Low Food Access vs. Food Sources",
+         x = "Low Food Access",
+         y = "Food Sources")
+
+#There are two points that are clearly outliers at thousands of percents higher than the others, so I am removing them here 
+atlaspc2 = filter(atlaspc, PCH_LACCESS_POP_15_19 <5000, PCH_GROCPTH_16_20 <5000, PCH_SUPERCPTH_16_20 <5000, PCH_CONVSPTH_16_20 <5000, PCH_SPECSPTH_16_20 <5000, PCH_SNAPSPTH_17_23 <5000, PCH_WICSPTH_16_22 <5000, PCH_FFRPTH_16_20 <5000, PCH_FSRPTH_16_20 <5000, PCH_PC_DIRSALES_12_17 <5000)
+
+#normalize predictors 
+colMeans(atlaspc2) 
+mutate(atlaspc2, PCH_GROCPTH_16_20 = PCH_GROCPTH_16_20) |> 
+select(PCH_GROCPTH_16_20)
+mutate(atlaspc2, PCH_SUPERCPTH_16_20 = PCH_SUPERCPTH_16_20) |> 
+select(PCH_SUPERCPTH_16_20)
+mutate(atlaspc2, PCH_CONVSPTH_16_20 = PCH_CONVSPTH_16_20) |> 
+select(PCH_CONVSPTH_16_20)
+mutate(atlaspc2, PCH_SPECSPTH_16_20 = PCH_SPECSPTH_16_20) |> 
+select(PCH_SPECSPTH_16_20)
+mutate(atlaspc2, PCH_SNAPSPTH_17_23 = PCH_SNAPSPTH_17_23) |> 
+select(PCH_SNAPSPTH_17_23)
+mutate(atlaspc2, PCH_WICSPTH_16_22 = PCH_WICSPTH_16_22) |> 
+select(PCH_WICSPTH_16_22)
+mutate(atlaspc2, PCH_FFRPTH_16_20 = PCH_FFRPTH_16_20) |> 
+select(PCH_FFRPTH_16_20)
+mutate(atlaspc2, PCH_FSRPTH_16_20 = PCH_FSRPTH_16_20) |> 
+select(PCH_FSRPTH_16_20)
+mutate(atlaspc2, PCH_PC_DIRSALES_12_17 = PCH_PC_DIRSALES_12_17) |> 
+select(PCH_PC_DIRSALES_12_17)
+cor(atlaspc2)
+mshapiro.test(t(atlaspc2[,1:9])) 
+
+atlaspc2_long <- atlaspc2 |>
+  pivot_longer(cols = c("PCH_GROCPTH_16_20", "PCH_SUPERCPTH_16_20", "PCH_CONVSPTH_16_20", "PCH_SPECSPTH_16_20", "PCH_SNAPSPTH_17_23", "PCH_WICSPTH_16_22", "PCH_FFRPTH_16_20", "PCH_FSRPTH_16_20", "PCH_PC_DIRSALES_12_17"),
+               names_to = "sources",
+               values_to = "food")
+atlaspc2_long 
+
+options(repr.plot.width = NULL, repr.plot.height = NULL)
+ggplot(atlaspc2_long, aes(x = PCH_LACCESS_POP_15_19, y = food, color = sources)) +
+  geom_point() +
+  labs(title = "Low Food Access vs. Food Sources",
+         x = "Low Food Access",
+         y = "Food Sources") +
+  theme_minimal()
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+ggplot(atlaspc2_long, aes(sample = food)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_wrap(~sources, scales = "free") +
+  labs(title = "Q-Q Plots for Food Sources",
+       x = "Theoretical Quantiles", y = "Sample Quantiles")
+
+options(repr.plot.width = 8, repr.plot.height = 3)
+
+d <- gather(atlaspc2[,c(1:9)])
+ggplot(d,aes(x = value, color=key)) + 
+    facet_wrap(~key,scales = "free_x") + 
+    geom_histogram(aes(y=after_stat(density)), alpha=0.5, 
+                position="identity",fill="white")+
+    geom_density(alpha=.2) 
+
+pcmodel <- lm(PCH_LACCESS_POP_15_19 ~ ., data = atlaspc2)
+pcmodel
+
+predict(pcmodel, newdata=data.frame(PCH_GROCPTH_16_20=1, PCH_SUPERCPTH_16_20=1, PCH_CONVSPTH_16_20=1, PCH_SPECSPTH_16_20=1, PCH_SNAPSPTH_17_23=1, PCH_WICSPTH_16_22=1, PCH_FFRPTH_16_20=1, PCH_FSRPTH_16_20=1, PCH_PC_DIRSALES_12_17=1))
+
+summary(pcmodel)
+confint(pcmodel)
+anova(pcmodel)
+
+```
+
+Assumptions: testing linearity, independence, homoskedasticity, etc. 
+
+
+``` {r 3}
+#create vector of VIF values
+vif_values <- vif(model)
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "steelblue") #create horizontal bar chart to display each VIF value
+#add vertical line at 5 as after 5 there is severe correlation
+abline(v = 5, lwd = 3, lty = 2)
+
+# independent variables 
+data_x <- atlas2[,1:3]
+# independent variables correlation matrix 
+var <- cor(data_x)
+## or solve independent variables inverse correlation matrix 
+var_inv <- ginv(var)
+# rename the row names and column names
+colnames(var_inv) <- colnames(data_x)
+rownames(var_inv) <- colnames(data_x)
+var_inv
+
+model.arg <- augment(model, se_fit = TRUE)
+head(model.arg)
+
+par(mfrow = c(2, 2))
+plot(model)
+
+mshapiro.test(t(model.arg$.resid))
+
+ggplot(model.arg) + 
+  geom_density(aes(x=.resid))
+
+# Add observations indices and
+# drop some columns (.se.fit, .sigma) for simplification
+model.arg %>%
+  mutate(index = 1:nrow(model.arg)) %>%
+  filter(index %in% c(6,76,131))
+
+# again for model2 
+vif_values2 <- vif(model2)
+barplot(vif_values2, main = "VIF Values", horiz = TRUE, col = "steelblue") 
+abline(v = 5, lwd = 3, lty = 2)
+data_x2 <- atlas3[,1:3]
+var2 <- cor(data_x2)
+var_inv2 <- ginv(var2)
+colnames(var_inv2) <- colnames(data_x2)
+rownames(var_inv2) <- colnames(data_x2)
+var_inv2
+
+model2.arg <- augment(model2, se_fit = TRUE)
+head(model2.arg)
+
+par(mfrow = c(2, 2))
+plot(model2)
+
+mshapiro.test(t(model2.arg$.resid))
+
+ggplot(model2.arg) + 
+  geom_density(aes(x=.resid))
+
+model2.arg %>%
+  mutate(index = 1:nrow(model2.arg)) %>%
+  filter(index %in% c(6,76,131))
+
+# again for pcmodel 
+pcvif_values <- vif(pcmodel)
+barplot(pcvif_values, main = "VIF Values", horiz = TRUE, col = "steelblue") 
+abline(v = 5, lwd = 3, lty = 2)
+pcdata_x <- atlaspc2[,1:3]
+pcvar <- cor(pcdata_x)
+pcvar_inv <- ginv(pcvar)
+colnames(pcvar_inv) <- colnames(pcdata_x)
+rownames(pcvar_inv) <- colnames(pcdata_x)
+pcvar_inv
+
+pcmodel.arg <- augment(pcmodel, se_fit = TRUE)
+head(pcmodel.arg)
+
+par(mfrow = c(2, 2))
+plot(pcmodel)
+
+mshapiro.test(t(pcmodel.arg$.resid))
+
+ggplot(pcmodel.arg) + 
+  geom_density(aes(x=.resid))
+
+pcmodel.arg %>%
+  mutate(index = 1:nrow(pcmodel.arg)) %>%
+  filter(index %in% c(6,76,131))
+
+
+```
+For models 1 and 2 and the per capita model, the VIF looks to be slightly higher than 1, suggesting moderate multicollinearity. The Residual v. Fitted Plot suggests linearity because there is a horizontal line without any distinct patterns. The Normal Q-Q Plot suggests that the residuals are normally distributed because they follow the red line. The Scale-Location suggests that we have homoscedasticity because there is a horizontal line with equally spread points. 
+
+Results, interpretation, and insights: 
+
+Comparing the first and second models, the first model's Shapiro-Wilk test had a W of 0.12859 with a significant p-value, so we cannot say that the data are multivariate normal. The second model's W is much closer to 1 at 0.74753 with a significant p-value, so we can say that the data are multivariate normal. 
+
+In the first model, the intercept for grocery stores was -.109 with a p-value of .00842, the intercept for convenience stores was -.072 with a p-value of .09752, the intercept for fast food was -.267 with a p-value of 8.33e-05, and the intercept for full-service restaurants was .140 with a p-value of .06602. In the second model, the intercept for grocery stores was -.116 with a p-value of .00442, the intercept for convenience stores was -.0737 with a p-value of .08702, the intercept for fast food was -.275 with a p-value of 4.02e-05, and the intercept for full-service restaurants was .132 with a p-value of .07825.
+
+The first model had a residual standard error of 14.65 on 590 df, an adjusted R^2 of .04206--very low. Its F-statistic was 3.922 with a p-value of 7.339e-05. (Need to fix code for second model) The second model had a residual standard error of 14.63 on 595 df, an adjusted R^2 of .04503--again, very low. Its F-statistic was 8.061 with a p-value of 2.476e-06.
+
+For the per capita variables, the model's Shapiro-Wilk test had a W of 0.13286 with a significant p-value, so we cannot say that the data are multivariate normal. The intercept for grocery stores was -.088 with a p-value of .046, the intercept for fast food was -.171 with a p-value of .026, and the intercept for full service restaurants was .276 with a p-value of .000865. The first model had a residual standard error of 14.85 on 584 df, an adjusted R^2 of .0245--even lower. Its F-statistic was 2.656 with a p-value of .005. I am deciding against using the per capita models for now. 
