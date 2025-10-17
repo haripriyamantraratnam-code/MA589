@@ -1,6 +1,4 @@
 
-knitr::opts_chunk$set(echo = TRUE)
-
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
 
 install.packages("ggfortify")
@@ -11,10 +9,6 @@ install.packages("caret")
 install.packages("mvtnorm")
 install.packages("pROC")
 install.packages("tinytex")
-
-update.packages(ask = FALSE, checkBuilt = TRUE)
-tinytex::tlmgr_update()
-
 
 library(MASS) 
 library(datarium)
@@ -68,24 +62,24 @@ decisionplot <- function(model, data, class = NULL, predict_type = "class",
 }
 
 data <- read.csv("C:/Users/harip/Downloads/adult/adult.data")
-data
+head(data)
 
 data <- select(data, X39, X13, X40, X..50K) 
 names(data) <- c("age", "education-num", "hours-per-week", "y")
-data 
+head(data) 
 
 data$y <- ifelse(data$y == " >50K", 2, 1)
-data
+head(data)
 
 X1 <- filter(data, y == 1)
-X1 
+head(X1) 
 X2 <- filter(data, y == 2)
-X2 
+head(X2) 
 
 X <- rbind(X1, X2)
-X
+head(X)
 y <- factor(c(rep(0, nrow(X1)), rep(1, nrow(X2)))) 
-y
+head(y)
 
 data <- data.table(x1 = X[, 1], x2 = X[, 2], y = y)
 head(data)
@@ -188,9 +182,7 @@ means_matrix <- do.call(rbind, means)
 #compute between-class and within-class scatter matrices 
 grand_mean <- colMeans(data[, .(x1, x2, x3, x4)])
 B <- t(means_matrix - grand_mean) %*% (means_matrix - grand_mean)
-B
 W <- var(X)
-W
 
 #eigen-decomposition of W^{-1}B 
 eig <- eigen(solve(W) %*% B)
@@ -289,29 +281,28 @@ y.uni
 classifiers_ova <- list()
 train.data2 <- train.data
 head(train.data2)
-names(train.data2) <- 
-  
-  #loop to train a classifier for each class 
-  #for (k in y.uni) {
-  #  y_binary <- ifelse(train.data2$y == k, 1, 0)
-  #  assign("train.data2", within(train.data2, assign(k, y_binary)))
-  #  formula.glm <- paste(k,"~ x1 + x2")
-  #  fit <- glm(formula.glm, data = train.data2, family = binomial)
-  #  classifiers_ova[[k]] <- fit
-  #}
-  
-  for (k in y.uni) {
-    y_binary <- ifelse(train.data2$y == k, 1, 0)
-    formula_str <- paste("y_binary ~ x1 + x2")
-    temp_data_for_glm <- data.frame(
-      y_binary = y_binary,
-      x1 = train.data2$x1,
-      x2 = train.data2$x2
-    )
-    fit <- glm(as.formula(formula_str), data = temp_data_for_glm, family = binomial)
-    classifiers_ova[[k]] <- fit
-    rm(temp_data_for_glm)
-  }
+
+#loop to train a classifier for each class 
+#for (k in y.uni) {
+#  y_binary <- ifelse(train.data2$y == k, 1, 0)
+#  assign("train.data2", within(train.data2, assign(k, y_binary)))
+#  formula.glm <- paste(k,"~ x1 + x2")
+#  fit <- glm(formula.glm, data = train.data2, family = binomial)
+#  classifiers_ova[[k]] <- fit
+#}
+
+for (k in y.uni) {
+  y_binary <- ifelse(train.data2$y == k, 1, 0)
+  formula_str <- paste("y_binary ~ x1 + x2")
+  temp_data_for_glm <- data.frame(
+    y_binary = y_binary,
+    x1 = train.data2$x1,
+    x2 = train.data2$x2
+  )
+  fit <- glm(as.formula(formula_str), data = temp_data_for_glm, family = binomial)
+  classifiers_ova[[k]] <- fit
+  rm(temp_data_for_glm)
+}
 
 #prediction function for OvA 
 predict_OvA <- function(newdata, classifiers) {
@@ -390,6 +381,17 @@ head(dc_data)
 #       color = "Actual Class") +
 #  theme(legend.position = "bottom")
 
+library(MASS) 
+library(datarium)
+library(ggplot2)
+library(broom) 
+library(ggfortify)
+library(tidyverse)
+library(mvnormtest)
+library(data.table)
+library(gridExtra)
+library(dplyr)
+library(tinytex)
 
 #logistic regression for multinomial 
 library(tidyverse)
@@ -398,7 +400,6 @@ library(nnet)
 library(pROC)
 
 data <- read.csv("C:/Users/harip/Downloads/predict+students+dropout+and+academic+success/data.csv", sep=";")
-data
 data <- select(data, Previous.qualification..grade., Admission.grade, Target)
 
 str(data)
@@ -443,8 +444,6 @@ predict_OvA <- function(newdata, classifiers) {
 
 #test the prediction function 
 OvA_pred <- predict_OvA(test.data, classifiers_ova)
-OvA_pred 
-test.data$Target
 
 mean(OvA_pred == test.data$Target)
 
