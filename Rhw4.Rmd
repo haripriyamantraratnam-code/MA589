@@ -1,5 +1,6 @@
 ---
 title: "Rhw4"
+author: "Priya Mantraratnam" 
 output:
   pdf_document: default
   html_document:
@@ -80,24 +81,24 @@ decisionplot <- function(model, data, class = NULL, predict_type = "class",
 }
 
 data <- read.csv("C:/Users/harip/Downloads/adult/adult.data")
-data
+head(data)
 
 data <- select(data, X39, X13, X40, X..50K) 
 names(data) <- c("age", "education-num", "hours-per-week", "y")
-data 
+head(data) 
 
 data$y <- ifelse(data$y == " >50K", 2, 1)
-data
+head(data)
 
 X1 <- filter(data, y == 1)
-X1 
+head(X1) 
 X2 <- filter(data, y == 2)
-X2 
+head(X2) 
 
 X <- rbind(X1, X2)
-X
+head(X)
 y <- factor(c(rep(0, nrow(X1)), rep(1, nrow(X2)))) 
-y
+head(y)
 
 data <- data.table(x1 = X[, 1], x2 = X[, 2], y = y)
 head(data)
@@ -200,9 +201,7 @@ means_matrix <- do.call(rbind, means)
 #compute between-class and within-class scatter matrices 
 grand_mean <- colMeans(data[, .(x1, x2, x3, x4)])
 B <- t(means_matrix - grand_mean) %*% (means_matrix - grand_mean)
-B
 W <- var(X)
-W
 
 #eigen-decomposition of W^{-1}B 
 eig <- eigen(solve(W) %*% B)
@@ -301,7 +300,6 @@ y.uni
 classifiers_ova <- list()
 train.data2 <- train.data
 head(train.data2)
-names(train.data2) <- 
 
 #loop to train a classifier for each class 
 #for (k in y.uni) {
@@ -406,6 +404,18 @@ head(dc_data)
 
 ```{r 3}
 
+library(MASS) 
+library(datarium)
+library(ggplot2)
+library(broom) 
+library(ggfortify)
+library(tidyverse)
+library(mvnormtest)
+library(data.table)
+library(gridExtra)
+library(dplyr)
+library(tinytex)
+
 #logistic regression for multinomial 
 library(tidyverse)
 library(caret)
@@ -413,7 +423,6 @@ library(nnet)
 library(pROC)
 
 data <- read.csv("C:/Users/harip/Downloads/predict+students+dropout+and+academic+success/data.csv", sep=";")
-data
 data <- select(data, Previous.qualification..grade., Admission.grade, Target)
 
 str(data)
@@ -458,8 +467,6 @@ predict_OvA <- function(newdata, classifiers) {
 
 #test the prediction function 
 OvA_pred <- predict_OvA(test.data, classifiers_ova)
-OvA_pred 
-test.data$Target
 
 mean(OvA_pred == test.data$Target)
 
@@ -525,15 +532,15 @@ dc_data$LDA <- lda_pred
 dc_data$Linear <- factor(linear_pred_class)
 head(dc_data)
 
-#ggplot(dc_data, aes(x = LD1, y = LD2, color = True)) +
-#  geom_point(aes(shape = Logit),  size = 4, alpha = 0.3) +
-#  geom_point(aes(shape = LDA),  size = 2, alpha = 0.9) +
-#  geom_point(aes(shape = Linear), size = 2, alpha = 0.7) +
-#  scale_shape_manual(values = c(16, 17, 18, 19, 20, 21)) +
-#  ggtitle("PCA Visualization of Actual and Predicted Classes") +
-#  labs(shape = "Predicted Class",
-#       color = "Actual Class") +
-#  theme(legend.position = "bottom")
+ggplot(dc_data, aes(x = LD1, y = LD2, color = True)) +
+  geom_point(aes(shape = Logit),  size = 4, alpha = 0.3) +
+  geom_point(aes(shape = LDA),  size = 2, alpha = 0.9) +
+  geom_point(aes(shape = Linear), size = 2, alpha = 0.7) +
+  scale_shape_manual(values = c(16, 17, 18, 19, 20, 21)) +
+  ggtitle("PCA Visualization of Actual and Predicted Classes") +
+  labs(shape = "Predicted Class",
+       color = "Actual Class") +
+  theme(legend.position = "bottom")
 
 
 ```
