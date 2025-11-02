@@ -918,3 +918,4 @@ ggplot(dc_data, aes(x = LD1, y = LD2, color = True)) +
   labs(shape = "Predicted Class",
        color = "Actual Class") +
   theme(legend.position = "bottom")
+
