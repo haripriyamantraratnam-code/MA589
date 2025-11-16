@@ -30,7 +30,6 @@ library(scales)
 # https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success
 
 data1 <- read.csv("C:/Users/harip/Downloads/predict+students+dropout+and+academic+success/data.csv", sep=";")
-head(data1)
 
 colnames(data1)
 names(data1) <- c("Marital status",
@@ -106,7 +105,6 @@ data1 <- data1 |>
     `Inflation rate` = as.numeric(`Inflation rate`)/100,
     `GDP` = as.numeric(`GDP`)/100
          ) 
-head(data1)
 
 #assumption: students do not vary over time, no intrinsic distribution change 
 
@@ -271,7 +269,7 @@ data1$"Father's qualification" <- ifelse(data1$"Father's qualification" == 1, "S
                                   ifelse(data1$"Father's qualification" == 41, "Specialized higher studies course",
                                   ifelse(data1$"Father's qualification" == 42, "Professional higher technical course",
                                   ifelse(data1$"Father's qualification" == 43, "Higher Education - Master (2nd cycle)",
-                                  ifelse(data1$"Mother's qualification" == 44, "Higher Education - Doctorate (3rd cycle)", NA)))))))))))))))))))))))))))))))))) 
+                                  ifelse(data1$"Mother's qualification" == 44, "Higher Education - Doctorate (3rd cycle)", "NA")))))))))))))))))))))))))))))))))) 
 
 data1$"Displaced" <- ifelse(data1$"Displaced" == 1, "yes", "no") 
 
@@ -300,6 +298,108 @@ categorical_cols <- c("Marital status",
                       "Gender",
                       "Scholarship holder",
                       "International")
+
+
+data1$`Marital status` <- ifelse(
+  data1$`Marital status` == "single", 
+  "single", 
+  "not single"
+)
+
+data1$`Application order` <- ifelse(
+  data1$`Application order` == "2nd choice", 
+  "2nd choice", 
+  "not 2nd choice"
+)
+
+data1$`Nationality` <- ifelse(
+  data1$`Nationality` == "Portuguese", 
+  "Portuguese", 
+  "not Portuguese"
+)
+
+data1$`Previous qualification` <- ifelse(
+  data1$`Previous qualification` == "Other - 11th year of schooling" | 
+    data1$`Previous qualification` == "10th year of schooling"| 
+    data1$`Previous qualification` == "10th year of schooling - not completed" | 
+    data1$`Previous qualification` == "11th year of schooling - not completed" |
+    data1$`Previous qualification` == "12th year of schooling - not completed" |
+    data1$`Previous qualification` == "Basic education 2nd cycle (6th/7th/8th year) or equiv." |
+    data1$`Previous qualification` == "Basic education 3rd cycle (9th/10th/11th year) or equiv.", 
+  "underqualified", 
+  ifelse(
+    data1$`Previous qualification` == "Secondary education",
+    "qualified", 
+    "overqualified"
+  )
+)
+
+data1$`Application mode` <- ifelse(
+  data1$`Application mode` == "3rd phase - general contingent" | 
+    data1$`Application mode` == "2nd phase - general contingent" | 
+    data1$`Application mode` == "1st phase - general contingent", 
+  "General contingent", 
+  ifelse(
+    data1$`Application mode` == "Over 23 years old",
+    "Over 23 years old", 
+    "Other"
+  )
+)
+
+data1$`Mother's qualification` <- ifelse(
+  data1$`Mother's qualification` == "Unknown" | 
+  data1$`Mother's qualification` == "Can read without having a 4th year of schooling" | 
+  data1$`Mother's qualification` == "Can't read or write" |
+  data1$`Mother's qualification` == "9th Year of Schooling - Not Completed" |
+  data1$`Mother's qualification` == "10th Year of Schooling" |
+  data1$`Mother's qualification` == "11th Year of Schooling - Not Completed" |
+  data1$`Mother's qualification` == "12th Year of Schooling - Not Completed" |
+  data1$`Mother's qualification` == "2nd cycle of the general high school course" |
+  data1$`Mother's qualification` == "7th Year (Old)" |
+  data1$`Mother's qualification` == "7th year of schooling" |
+  data1$`Mother's qualification` == "8th year of schooling",
+    "Other", 
+  ifelse(
+    data1$`Mother's qualification` == "Basic education 1st cycle (4th/5th year) or equiv." |
+    data1$`Mother's qualification` == "Basic Education 2nd Cycle (6th/7th/8th Year) or Equiv." |
+    data1$`Mother's qualification` == "Basic Education 3rd Cycle (9th/10th/11th Year) or Equiv." |
+    data1$`Mother's qualification` == "Other - 11th Year of Schooling",
+    "Basic education", 
+    "Secondary education and above"
+  )
+)
+
+data1$`Father's qualification` <- ifelse(
+  data1$`Father's qualification` == "NA" | 
+  data1$`Father's qualification` == "Unknown" | 
+  data1$`Father's qualification` == "Can read without having a 4th year of schooling" | 
+  data1$`Father's qualification` == "Can't read or write" | 
+  data1$`Father's qualification` == "10th Year of Schooling" | 
+  data1$`Father's qualification` == "11th Year of Schooling - Not Completed" | 
+  data1$`Father's qualification` == "12th Year of Schooling - Not Completed" | 
+  data1$`Father's qualification` == "2nd cycle of the general high school course" | 
+  data1$`Father's qualification` == "2nd year complementary high school course" | 
+  data1$`Father's qualification` == "7th Year (Old)" | 
+  data1$`Father's qualification` == "7th year of schooling" | 
+  data1$`Father's qualification` == "8th year of schooling" | 
+  data1$`Father's qualification` == "9th Year of Schooling - Not Completed",
+  "Other", 
+  ifelse(
+    data1$`Father's qualification` == "Basic Education 3rd Cycle (9th/10th/11th Year) or Equiv." |
+    data1$`Father's qualification` == "Basic Education 2nd Cycle (6th/7th/8th Year) or Equiv." | 
+    data1$`Father's qualification` == "Basic education 1st cycle (4th/5th year) or equiv." | 
+    data1$`Father's qualification` == "Other - 11th Year of Schooling" | 
+    data1$`Father's qualification` == "Complementary High School Course - not concluded",
+    "Basic education", 
+    "Secondary education and above"
+  )
+)
+
+ggplot(data, aes(x = Target, fill = Target)) +
+  geom_bar() +
+  labs(title = "Frequency of Target",
+       x = "Target",
+       y = "Count")
 
 library(ggplot2)
 library(scales)
@@ -342,11 +442,11 @@ for (i in categorical_cols) {
 
 for (i in categorical_cols) {
   plot <- ggplot(data1, aes(x = .data[[i]], fill = Target)) +
-  geom_bar(position = "dodge") +
-  labs(
-    title = paste("Frequency of", i, "by Target"),
-    x = i,
-    y = "Count"
+    geom_bar(position = "dodge") +
+    labs(
+      title = paste("Frequency of", i, "by Target"),
+      x = i,
+      y = "Count"
     ) +
     theme_minimal() + 
     scale_x_discrete(
@@ -416,103 +516,6 @@ ggplot(data1,aes(x=`GDP`, color=Target)) +
   geom_histogram(aes(y=after_stat(density)), bins = 50, alpha=0.5,
                  position="identity", fill="white")+
   geom_density(alpha=.2)
-
-data1$`Marital status` <- ifelse(
-  data1$`Marital status` == "single", 
-  "single", 
-  "not single"
-)
-
-data1$`Application order` <- ifelse(
-  data1$`Application order` == "2nd choice", 
-  "2nd choice", 
-  "not 2nd choice"
-)
-
-data1$`Nationality` <- ifelse(
-  data1$`Nationality` == "Portuguese", 
-  "Portuguese", 
-  "not Portuguese"
-)
-
-data1$`Previous qualification` <- ifelse(
-  data1$`Previous qualification` == "Other − 11th year of schooling" | 
-    data1$`Previous qualification` == "10th year of schooling"| 
-    data1$`Previous qualification` == "10th year of schooling − not completed" | 
-    data1$`Previous qualification` == "11th year of schooling − not completed" |
-    data1$`Previous qualification` == "12th year of schooling − not completed" |
-    data1$`Previous qualification` == "Basic education 2nd cycle (6th/7th/8th year) or equiv." |
-    data1$`Previous qualification` == "Basic education 3rd cycle (9th/10th/11th year) or equiv.", 
-  "underqualified", 
-  ifelse(
-    data1$`Previous qualification` == "Secondary education",
-    "qualified", 
-    "overqualified"
-  )
-)
-
-data1$`Application mode` <- ifelse(
-  data1$`Application mode` == "3rd phase − general contingent" | 
-    data1$`Application mode` == "2nd phase − general contingent" | 
-    data1$`Application mode` == "1st phase − general contingent", 
-  "General contingent", 
-  ifelse(
-    data1$`Application mode` == "Over 23 years old",
-    "Over 23 years old", 
-    "Other"
-  )
-)
-
-data1$`Mother's qualification` <- ifelse(
-  data1$`Mother's qualification` == "Unknown" | 
-  data1$`Mother's qualification` == "Can read without having a 4th year of schooling" | 
-  data1$`Mother's qualification` == "Can't read or write" |
-  data1$`Mother's qualification` == "9th Year of Schooling − Not Completed" |
-  data1$`Mother's qualification` == "10th Year of Schooling" |
-  data1$`Mother's qualification` == "11th Year of Schooling − Not Completed" |
-  data1$`Mother's qualification` == "12th Year of Schooling − Not Completed" |
-  data1$`Mother's qualification` == "2nd cycle of the general high school course" |
-  data1$`Mother's qualification` == "7th Year (Old)" |
-  data1$`Mother's qualification` == "7th year of schooling" |
-  data1$`Mother's qualification` == "8th year of schooling",
-    "Other", 
-  ifelse(
-    data1$`Mother's qualification` == "Basic education 1st cycle (4th/5th year) or equiv." |
-    data1$`Mother's qualification` == "Basic Education 2nd Cycle (6th/7th/8th Year) or Equiv." |
-    data1$`Mother's qualification` == "Basic Education 3rd Cycle (9th/10th/11th Year) or Equiv." |
-    data1$`Mother's qualification` == "Other − 11th Year of Schooling",
-    "Basic education", 
-    "Secondary education and above"
-  )
-)
-
-data1$`Father's qualification` <- ifelse(
-  data1$`Father's qualification` == "NA" | 
-  data1$`Father's qualification` == "Unknown" | 
-  data1$`Father's qualification` == "Can read without having a 4th year of schooling" | 
-  data1$`Father's qualification` == "Can't read or write" | 
-  data1$`Father's qualification` == "10th Year of Schooling" | 
-  data1$`Father's qualification` == "11th Year of Schooling − Not Completed" | 
-  data1$`Father's qualification` == "12th Year of Schooling − Not Completed" | 
-  data1$`Father's qualification` == "2nd cycle of the general high school course" | 
-  data1$`Father's qualification` == "2nd year complementary high school course" | 
-  data1$`Father's qualification` == "7th Year (Old)" | 
-  data1$`Father's qualification` == "7th year of schooling" | 
-  data1$`Father's qualification` == "8th year of schooling" | 
-  data1$`Father's qualification` == "9th Year of Schooling − Not Completed",
-  "Other", 
-  ifelse(
-    data1$`Father's qualification` == "Basic Education 3rd Cycle (9th/10th/11th Year) or Equiv." |
-    data1$`Father's qualification` == "Basic Education 2nd Cycle (6th/7th/8th Year) or Equiv." | 
-    data1$`Father's qualification` == "Basic education 1st cycle (4th/5th year) or equiv." | 
-    data1$`Father's qualification` == "Other − 11th Year of Schooling" | 
-    data1$`Father's qualification` == "Complementary High School Course − not concluded",
-    "Basic education", 
-    "Secondary education and above"
-  )
-)
-
-head(data1)
 
 for (col_name in categorical_cols) {
   a <- data.frame(x1 = data1[[col_name]], x2 = data1[["Target"]])
@@ -627,6 +630,7 @@ ggplot(data, aes(x = x1, y = x2, color = y)) +
   ggtitle("") +
   labs(color = "True Class", shape = "Predicted Class") +
   theme(legend.position = "bottom")
+#am I supposed to have Predicted Class? Is there a mistake earlier? 
 
 #LDA model and decision boundary 
 
