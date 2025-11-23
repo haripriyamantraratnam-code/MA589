@@ -1,0 +1,3 @@
+This is student material from the MA 589 course taken at UAB in fall 2025: Statistical Techniques for Machine Learning and Big Data. The final draft code is linked here: https://github.com/haripriyamantraratnam-code/MA589/blob/main/finaldraft.R. 
+
+Later homework material from the course is included as an R file and in pdf form. Early homework material is in R markdown form and in pdf form. Early data cleaning for the final is labelled as a first draft. Relevant data files are included as they were at the time that they were downloaded from their respective sources. My data cleaning process for each is specified within the relevant R or Rmd files. 
